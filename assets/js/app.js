@@ -70,7 +70,7 @@ const MANTRAS = [
   { t: 'Carpal bones', m: 'Some Lovers Try Positions That They Can’t Handle', d: 'Scaphoid, Lunate, Triquetrum, Pisiform, Trapezium, Trapezoid, Capitate, Hamate (proximal row lateral to medial, then distal row).' },
 ];
 const BANNERS = [
-  { eyebrow: 'NEW EDITION', title: 'TO THE POINT', sub: '4th Edition', line: 'Previous year question bank', price: 'For ₹2,899', code: 'POWER', book: ['TO THE', 'POINT'], cls: '' },
+  { eyebrow: 'NEW EDITION', title: 'TO THE POINT', sub: '4th Edition', line: 'Previous year question bank', price: 'For ₹2,899', code: 'POWER', book: ['TO THE', 'POINT'], cls: '', img: '/assets/img/to-the-point-cover.png' },
   { eyebrow: 'LIVE THIS WEEK', title: 'GRAND TEST 220', sub: 'All-India rank & analysis', line: 'Live till 03 JAN, 4:30 PM', price: '200 MCQs', code: 'FREE', book: ['GRAND', 'TEST'], cls: 'alt' },
   { eyebrow: 'PRO PLAN', title: 'ANATOMY MASTERY', sub: 'Videos + QBanks + Notes', line: 'Head, Neck & Face module', price: 'For ₹1,499', code: 'GURU20', book: ['HEAD', 'NECK'], cls: 'alt2' },
 ];
@@ -135,18 +135,38 @@ const mcqBlock = () => {
     ${p !== null ? `<div class="explain" role="status"><b class="${p === MCQ.a ? 'good' : 'bad-t'}">${p === MCQ.a ? 'Correct answer · +10 coins' : 'Not quite — the answer is A'}</b>${MCQ.e}<button class="link-btn" style="align-self:flex-start" data-action="mcq-reset">Try again</button></div>` : ''}
   </section>`;
 };
-const banner = () => {
-  const b = BANNERS[bannerIdx];
-  return `<section class="banner-wrap" aria-roledescription="carousel" aria-label="Featured">
-    <div class="banner"><div style="display:flex;flex-direction:column;gap:8px">
-      <span class="eyebrow">${b.eyebrow}</span><h1>${b.title}</h1>
-      <b style="font-size:15px">${b.sub}</b><span style="font-size:14px;color:var(--body)">${b.line}</span>
-      <div class="price"><span>${b.price}</span><span>Use code:&nbsp;<b>${b.code}</b></span></div>
-      <button class="link-btn" style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;align-self:flex-start" data-action="order">Order Now ${I.arrow}</button>
-    </div><div class="book ${b.cls}" role="img" aria-label="${b.title} cover"><b>${b.book[0]}<br>${b.book[1]}</b><small>${b.sub}</small></div></div>
+/* the header logo is inline SVG themed by CSS variables, so slides reuse its markup rather than an <img> */
+let logoSvg = null;
+const bannerLogo = () => logoSvg || (logoSvg = ($('.frame-logo svg') || {}).outerHTML || '');
+const bannerSlide = (b, i) => `<article class="banner" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${BANNERS.length}: ${b.title}">
+    <div class="banner-copy">
+      <span class="banner-logo" role="img" aria-label="eGurukul">${bannerLogo()}</span>
+      <h1>${b.title}</h1>
+      <b class="banner-sub">${b.sub}</b><span class="banner-line">${b.line}</span>
+      <div class="price"><span>${b.price}</span><span>Use Code:&nbsp;${b.code}</span></div>
+      <button class="link-btn banner-cta" data-action="order" data-arg="${i}">Order Now ${I.arrow}</button>
+    </div>
+    <div class="book-stage"><img class="banner-deco" src="/assets/img/banner-decoration.svg" alt="" aria-hidden="true">${b.img
+      ? `<img class="book-img" src="${b.img}" alt="${b.title} ${b.sub} cover" width="160" height="242" decoding="async">`
+      : `<div class="book ${b.cls}" role="img" aria-label="${b.title} cover"><b>${b.book[0]}<br>${b.book[1]}</b><small>${b.sub}</small></div>`}</div>
+  </article>`;
+const banner = () => `<section class="banner-wrap" aria-roledescription="carousel" aria-label="Featured">
+    <div class="banner-track">${BANNERS.map(bannerSlide).join('')}</div>
     <div class="dots">${BANNERS.map((_, i) => `<button aria-label="Slide ${i + 1}" aria-current="${i === bannerIdx}" data-action="banner" data-arg="${i}"></button>`).join('')}</div>
   </section>`;
-};
+/* scroll the track to a slide; dots follow from the scroll handler */
+function showBanner(i, smooth) {
+  const t = $('.banner-track'); if (!t || !t.children[i]) return;
+  t.scrollTo({ left: t.children[i].offsetLeft - t.children[0].offsetLeft, behavior: smooth ? 'smooth' : 'auto' });
+}
+function syncBannerDots() {
+  const t = $('.banner-track'); if (!t || !t.children.length) return;
+  const step = t.children.length > 1 ? t.children[1].offsetLeft - t.children[0].offsetLeft : 1;
+  bannerIdx = Math.max(0, Math.min(BANNERS.length - 1, Math.round(t.scrollLeft / step)));
+  document.querySelectorAll('.banner-wrap .dots button').forEach((d, i) => d.setAttribute('aria-current', i === bannerIdx));
+}
+/* scroll events don't bubble, so listen in the capture phase; the track is re-created on every render */
+document.addEventListener('scroll', (e) => { if (e.target.classList && e.target.classList.contains('banner-track')) syncBannerDots(); }, true);
 const statsBlock = () => `<section class="stats">${head('My Statistics', '', 'account')}
   <div class="card stat-card">
     <div class="stat"><span class="stat-ic">${sized(C.videoStat, 26)}</span><b class="num">${S.stats.videos}</b><span>Videos Watched</span></div>
@@ -176,7 +196,7 @@ V.home = () => `
         <ul><li>${I.check}Watch videos and content</li><li>${I.check}Earn coins</li><li>${I.check}Participate in quiz!</li></ul>
         <button class="link-btn" style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;align-self:flex-start" data-action="quizee">Play Quizee ${I.arrow}</button>
       </div>
-      <svg width="110" height="120" viewBox="0 0 120 130" aria-hidden="true" style="flex:0 0 auto"><ellipse cx="60" cy="118" rx="52" ry="10" fill="#C6ECF2" opacity=".7"/><rect x="36" y="96" width="48" height="16" rx="3" fill="#D93636"/><rect x="44" y="84" width="32" height="14" rx="2" fill="#E8574F"/><rect x="54" y="66" width="12" height="20" fill="#F2B415"/><path d="M32 20h56v14a28 28 0 0 1-56 0z" fill="#FFC928"/><path d="M32 26H20a12 12 0 0 0 14 16M88 26h12a12 12 0 0 1-14 16" fill="none" stroke="#FFC928" stroke-width="6"/><circle cx="18" cy="10" r="3" fill="#5A5FD0"/><circle cx="104" cy="8" r="3" fill="#D93636"/><rect x="96" y="56" width="6" height="6" rx="1" fill="#F2B415"/><rect x="12" y="60" width="6" height="6" rx="1" fill="#5A5FD0"/></svg>
+      <img class="quizee-trophy" src="/assets/img/quizee-trophy.svg" alt="" aria-hidden="true" width="160" height="119" decoding="async">
       </section>
     </aside>
   </div>`;
@@ -1559,12 +1579,7 @@ V.qbank = () => `
             <ul><li>${I.check}Create your own question bank</li><li>${I.check}Share question code</li><li>${I.check}Analyze your level</li></ul>
             <button class="link-btn" style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;align-self:flex-start;padding-left:0" data-action="custom-qb">Create Custom QB ${I.arrow}</button>
           </div>
-          <svg class="concept-art" width="110" height="140" viewBox="0 0 110 140" aria-hidden="true">
-            <rect x="18" y="66" width="80" height="6" rx="2" fill="#9AA7C7"/><path d="M28 72v58M88 72v58" stroke="#9AA7C7" stroke-width="4"/>
-            <rect x="52" y="44" width="34" height="22" rx="3" fill="#4FC3D9"/><rect x="60" y="62" width="18" height="4" fill="#2C9BB0"/>
-            <circle cx="40" cy="24" r="10" fill="#1F2247"/><path d="M28 36h24l6 30H24z" fill="#4FC3D9"/><path d="M32 66h14l2 38h-6l-4-26-4 26h-6z" fill="#1F2247"/>
-            <path d="M44 44l14 8" stroke="#4FC3D9" stroke-width="5" stroke-linecap="round"/>
-          </svg>
+          <img class="concept-art qb-deco" src="/assets/img/qbank-deco.svg" alt="" aria-hidden="true" width="88" height="145" decoding="async">
         </div>
       </section>
     </aside>
@@ -1596,12 +1611,7 @@ V.tests = () => {
           <p><b>${live.length} Live Tests</b> are going on right now!</p>
           <button class="link-btn" style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;padding-left:0" data-action="see-live">See All Live Tests ${I.arrow}</button>
         </div>
-        <svg class="lb-art" width="190" height="130" viewBox="0 0 190 130" aria-hidden="true">
-          <rect x="30" y="8" width="72" height="88" rx="4" fill="#FFFFFF" stroke="#D9DCEB"/><path d="M40 22h40M40 34h50M40 46h44M40 58h50M40 70h36" stroke="#C9CCE0" stroke-width="3" stroke-linecap="round"/><path d="M36 22l2 2 3-4M36 34l2 2 3-4M36 46l2 2 3-4" stroke="#4CC27F" stroke-width="2" fill="none"/>
-          <path d="M20 112l40-6 40 6-40 8z" fill="#D9DCEB"/><path d="M60 106l-28-26h46l14 26z" fill="#E9EBF4"/>
-          <circle cx="112" cy="58" r="12" fill="#1F2247"/><path d="M100 70c-6 4-10 14-10 26h44c0-12-4-22-10-26z" fill="#FFC928"/><path d="M92 96h48v6H92z" fill="#FFC928"/><path d="M104 80l-20 14" stroke="#FFC928" stroke-width="7" stroke-linecap="round"/><path d="M112 70v-2" stroke="#F3B88F" stroke-width="6"/>
-          <circle cx="160" cy="34" r="20" fill="#FFF7DA" stroke="#F2B415" stroke-width="4"/><path d="M160 22v12l8 5" stroke="#1F2247" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M154 10h12M160 10v4" stroke="#F2B415" stroke-width="4" stroke-linecap="round"/>
-        </svg>
+        <img class="lb-art" src="/assets/img/test-live.svg" alt="" aria-hidden="true" width="190" height="156" decoding="async">
       </section>
       <section class="stats">
         <div class="sec-head"><div><h2>My Statistics</h2><p>Your average stats</p></div><button class="link-btn" data-action="route" data-arg="account">View All</button></div>
@@ -1661,6 +1671,7 @@ function render(focusTop) {
   else $('#view').innerHTML = `<div style="display:flex;flex-direction:column;gap:28px">${V[route]()}</div>`;
   renderNav();
   renderMini();
+  showBanner(bannerIdx);
   applyReader();
   if (focusTop) $('#main').scrollTop = 0;
   bindViewForms();
@@ -1832,8 +1843,8 @@ const ACT = {
   mcq: (i) => { S.mcqPick = +i; if (+i === MCQ.a) S.coins += 10; save(); render(); },
   'mcq-reset': () => { S.mcqPick = null; save(); render(); },
   'mcq-history': () => openModal(`<h2 id="modal-title" style="padding-right:44px">MCQ history</h2><div class="card list">${[['15 Oct', 'Spinal accessory nerve lesion', S.mcqPick === null ? 'Not attempted' : S.mcqPick === MCQ.a ? 'Correct' : 'Incorrect'], ['14 Oct', 'Erb’s palsy: roots involved', 'Correct'], ['13 Oct', 'Nerve supply of the diaphragm', 'Incorrect'], ['12 Oct', 'Waiter’s tip deformity', 'Correct']].map(([d, t, r]) => `<div class="li"><span class="time">${d}</span><span style="flex:1">${t}</span><span class="${r === 'Correct' ? 'good' : r === 'Incorrect' ? 'bad-t' : ''}" style="font-weight:500">${r}</span></div>`).join('')}</div>`),
-  banner: (i) => { bannerIdx = +i; restartBanner(); render(); },
-  order: () => upgrade(BANNERS[bannerIdx].title),
+  banner: (i) => { showBanner(+i, true); restartBanner(); },
+  order: (i) => upgrade(BANNERS[i != null ? +i : bannerIdx].title),
   upgrade: () => upgrade(''),
   subject: (n) => { curSubject = n; subjTab = 'topics'; go('subject'); },
   'subj-tab': (k) => { subjTab = k; document.querySelectorAll('.subj-tabs [role=tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.arg === k))); const el = document.getElementById('sec-' + k); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); },
@@ -2010,7 +2021,7 @@ document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if
 $('#bell').addEventListener('click', () => { $('#bell-dot').hidden = true; openModal(`<h2 id="modal-title" style="padding-right:44px">Notifications</h2><div class="card list"><div class="li"><svg class="live-tag" width="49" height="21" viewBox="0 0 35 15" role="img" aria-label="Live"><rect width="35" height="15" rx="4" fill="#EE494B"></rect><g class="waves"><path d="M4.18923 4.10502C4.09899 4.15229 3.81325 4.46167 3.62204 4.71733C2.82067 5.7851 2.51989 7.09995 2.77556 8.4019C2.94314 9.24194 3.31696 9.97241 3.92712 10.6513C4.17849 10.9285 4.32673 10.9908 4.50935 10.8962C4.62751 10.8339 4.69411 10.7201 4.69411 10.5804C4.69411 10.4494 4.70485 10.4644 4.41052 10.1378C3.8111 9.47612 3.44802 8.62319 3.40075 7.76166C3.33845 6.65952 3.68435 5.66264 4.41052 4.86127C4.707 4.53042 4.69626 4.54975 4.69626 4.40581C4.69626 4.26401 4.65759 4.19311 4.53513 4.10932C4.44704 4.04917 4.29665 4.04702 4.18923 4.10502Z" fill="white"></path><path d="M10.4947 4.1248C10.4045 4.18066 10.3401 4.2666 10.3229 4.35684C10.2971 4.49004 10.3465 4.59102 10.5356 4.79082C10.8342 5.10664 11.0684 5.44609 11.2467 5.82422C11.9428 7.30449 11.6592 9.02754 10.5248 10.2199C10.2799 10.4777 10.2455 10.5959 10.3572 10.7828C10.4045 10.8623 10.542 10.9375 10.6365 10.9375C10.7526 10.9375 10.8364 10.8838 11.0362 10.6754C11.7451 9.94062 12.1877 8.97168 12.2908 7.93184C12.4197 6.62773 11.9514 5.27422 11.049 4.3375C10.9459 4.23008 10.8364 4.13125 10.8041 4.11406C10.7225 4.07109 10.5742 4.07754 10.4947 4.1248Z" fill="white"></path><path d="M8.88573 5.12429C8.76542 5.178 8.69667 5.27468 8.68593 5.40144C8.67518 5.54753 8.69667 5.5905 8.91366 5.83327C9.66132 6.66686 9.76659 7.84851 9.18436 8.81315C9.1285 8.90339 8.99745 9.07311 8.89433 9.19128C8.69022 9.41472 8.66659 9.46843 8.68808 9.63386C8.69667 9.70261 8.7203 9.74343 8.78475 9.80358C8.95878 9.96472 9.1328 9.93679 9.34765 9.7155C9.97929 9.06667 10.3166 8.12136 10.2328 7.2362C10.1641 6.50788 9.88905 5.88483 9.38847 5.32624C9.19725 5.10925 9.04901 5.05124 8.88573 5.12429Z" fill="white"></path><path d="M5.81138 5.14531C5.77485 5.1625 5.68032 5.24629 5.60083 5.33437C5.19478 5.7834 4.94126 6.28184 4.81021 6.88555C4.7436 7.19707 4.7436 7.80293 4.81021 8.11445C4.94126 8.71816 5.19478 9.2166 5.59868 9.66348C5.75122 9.83105 5.86724 9.90625 5.97466 9.90625C6.1272 9.90625 6.28188 9.78164 6.30981 9.6377C6.3356 9.49805 6.30337 9.41855 6.15298 9.25527C5.95532 9.04043 5.83931 8.87715 5.71899 8.63867C5.22915 7.68262 5.39028 6.58262 6.14224 5.75547C6.28618 5.59648 6.30767 5.54707 6.29263 5.40527C6.26685 5.17969 6.02837 5.05078 5.81138 5.14531Z" fill="white"></path><path d="M7.28506 6.84408C6.79736 7.02025 6.65557 7.62181 7.0165 7.9806C7.1583 8.1224 7.28506 8.17396 7.4999 8.17181C7.65459 8.17181 7.69971 8.16322 7.79209 8.11595C7.95322 8.03216 8.02197 7.96556 8.10361 7.81517C8.16807 7.69271 8.17451 7.66263 8.17666 7.4972C8.17666 7.28236 8.1251 7.1556 7.9833 7.0138C7.80713 6.83763 7.50635 6.76458 7.28506 6.84408Z" fill="white"></path></g><path d="M20.1367 10.2334V11H16.582V10.2334H20.1367ZM16.7676 3.89062V11H15.8252V3.89062H16.7676ZM22.0605 5.7168V11H21.1523V5.7168H22.0605ZM21.084 4.31543C21.084 4.16895 21.1279 4.04525 21.2158 3.94434C21.307 3.84342 21.4404 3.79297 21.6162 3.79297C21.7887 3.79297 21.9206 3.84342 22.0117 3.94434C22.1061 4.04525 22.1533 4.16895 22.1533 4.31543C22.1533 4.4554 22.1061 4.57585 22.0117 4.67676C21.9206 4.77441 21.7887 4.82324 21.6162 4.82324C21.4404 4.82324 21.307 4.77441 21.2158 4.67676C21.1279 4.57585 21.084 4.4554 21.084 4.31543ZM25.1172 10.1846L26.5625 5.7168H27.4854L25.5859 11H24.9805L25.1172 10.1846ZM23.9111 5.7168L25.4004 10.209L25.5029 11H24.8975L22.9834 5.7168H23.9111ZM30.4785 11.0977C30.1107 11.0977 29.777 11.0358 29.4775 10.9121C29.1813 10.7852 28.9258 10.6077 28.7109 10.3799C28.4993 10.152 28.3366 9.88184 28.2227 9.56934C28.1087 9.25684 28.0518 8.91504 28.0518 8.54395V8.33887C28.0518 7.90918 28.1152 7.52669 28.2422 7.19141C28.3691 6.85286 28.5417 6.56641 28.7598 6.33203C28.9779 6.09766 29.2253 5.92025 29.502 5.7998C29.7786 5.67936 30.0651 5.61914 30.3613 5.61914C30.7389 5.61914 31.0645 5.68424 31.3379 5.81445C31.6146 5.94466 31.8408 6.12695 32.0166 6.36133C32.1924 6.59245 32.3226 6.86589 32.4072 7.18164C32.4919 7.49414 32.5342 7.83594 32.5342 8.20703V8.6123H28.5889V7.875H31.6309V7.80664C31.6178 7.57227 31.569 7.3444 31.4844 7.12305C31.403 6.90169 31.2728 6.7194 31.0938 6.57617C30.9147 6.43294 30.6706 6.36133 30.3613 6.36133C30.1562 6.36133 29.9674 6.40527 29.7949 6.49316C29.6224 6.5778 29.4743 6.70475 29.3506 6.87402C29.2269 7.04329 29.1309 7.25 29.0625 7.49414C28.9941 7.73828 28.96 8.01986 28.96 8.33887V8.54395C28.96 8.7946 28.9941 9.0306 29.0625 9.25195C29.1341 9.47005 29.2367 9.66211 29.3701 9.82812C29.5068 9.99414 29.6712 10.1243 29.8633 10.2188C30.0586 10.3132 30.2799 10.3604 30.5273 10.3604C30.8464 10.3604 31.1165 10.2952 31.3379 10.165C31.5592 10.0348 31.7529 9.86068 31.9189 9.64258L32.4658 10.0771C32.3519 10.2497 32.207 10.4141 32.0312 10.5703C31.8555 10.7266 31.639 10.8535 31.3818 10.9512C31.1279 11.0488 30.8268 11.0977 30.4785 11.0977Z" fill="white"></path></svg><span style="flex:1">Grand Test- 220 (2022) is live until 03 JAN, 4:30 PM.</span></div><div class="li"><span class="kchip c">New</span><span style="flex:1">Video of the Day: Cranial Nerve Nuclei and Columns.</span></div></div>`); });
 
 let bannerT;
-function restartBanner() { clearInterval(bannerT); if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; bannerT = setInterval(() => { if (route !== 'home' || !$('#modal').hidden || document.activeElement && document.activeElement.closest && document.activeElement.closest('.col-rail, .search')) return; bannerIdx = (bannerIdx + 1) % BANNERS.length; const w = $('.banner-wrap'); if (w) w.outerHTML = banner(); }, 6000); }
+function restartBanner() { clearInterval(bannerT); if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; bannerT = setInterval(() => { if (route !== 'home' || !$('#modal').hidden || document.activeElement && document.activeElement.closest && document.activeElement.closest('.col-rail, .search')) return; if ($('.banner-track:hover')) return; showBanner((bannerIdx + 1) % BANNERS.length, true); }, 6000); }
 
 /* ---------- AI Guru agent ---------- */
 var agentMode = 'closed'; // closed | panel | full

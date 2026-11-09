@@ -1,7 +1,7 @@
 /* Layout: white sidebar rail + neutral grey canvas; main column of content sections, right rail of daily picks; bottom tab bar on phones (mirrors the mobile app) */
 :root{
   color-scheme:light; --pie-rest:#E4E6F0;
-  --bg:#F6F6F8; --surface:#FFFFFF; --line:#E3E1F4; --lav:#EEECFB; --lav-2:#E9E6FB;
+  --bg:#F6F6F8; --surface:#FFFFFF; --line:#E3E1F4; --lav:#EEECFB; --lav-2:#E9E6FB; --banner-bg:#F1F1FC;
   --ink:#1F2247; --brand:#262A80; --body:#3D4060; --muted:#5E6280;
   --yellow:#FFC814; --yellow-blob:#FFE08A; --yellow-soft:#FFF1C2; --yellow-ink:#7A5800;
   --red:#D93636; --red-soft:#FDE6E6; --green:#1F8A4C; --green-soft:#E4F5EA; --cyan:#E1F5F8;
@@ -13,7 +13,7 @@
 }
 :root[data-app-theme="dark"]{
   --pie-rest:#33364F;
-  --bg:#12131C; --surface:#1B1D2A; --line:#2E3150; --lav:#252845; --lav-2:#2A2D52;
+  --bg:#12131C; --surface:#1B1D2A; --line:#2E3150; --lav:#252845; --lav-2:#2A2D52; --banner-bg:#2A2D52;
   --ink:#ECECF7; --brand:#B9BDFF; --body:#C9CBE0; --muted:#A0A3BE;
   --yellow-blob:#6B5A1E; --yellow-soft:#3A3217; --yellow-ink:#FFD866;
   --red:#F06B6B; --red-soft:#3A1E22; --green:#4CC27F; --green-soft:#183326; --cyan:#173036;
@@ -156,13 +156,28 @@ body{background:var(--frame)}
 /* banner */
 .banner-wrap{flex:3 1 500px;min-width:0;display:flex;flex-direction:column;gap:12px}
 .banner{flex:1 1 auto;position:relative;overflow:hidden;background:var(--lav-2);border-radius:22px;padding:26px 28px;display:flex;gap:24px;align-items:center;justify-content:space-between;min-height:210px}
-.banner::after{content:"";position:absolute;right:-40px;bottom:-60px;width:220px;height:220px;border-radius:50%;background:var(--lav);z-index:0}
 .banner>*{position:relative;z-index:1}
-.banner .eyebrow{font:500 12px var(--f-body);letter-spacing:.08em;color:var(--muted)}
-.banner h1{font-size:30px;font-weight:800;line-height:1.1}
-.price{display:flex;align-items:center;margin-top:6px;flex-wrap:wrap}
-.price span:first-child{height:30px;display:flex;align-items:center;padding:0 12px;border-radius:6px 0 0 6px;background:var(--brand);color:var(--bg);font-size:13px;font-weight:500}
-.price span:last-child{height:30px;display:flex;align-items:center;padding:0 12px;border:2px dashed var(--brand);border-left:0;border-radius:0 6px 6px 0;background:var(--surface);font-size:13px}
+/* swipeable track: each slide fills the full width, no peek or gutter */
+.banner-track{flex:1 1 auto;display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border-radius:22px}
+.banner-track::-webkit-scrollbar{display:none}
+.banner-track>.banner{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;background:var(--banner-bg);padding-bottom:34px;container-type:inline-size}
+.banner-copy{flex:0 1 auto;max-width:56cqi;min-width:0;display:flex;flex-direction:column;gap:6px;z-index:2}
+.banner-logo{display:flex;height:30px;margin-bottom:4px}
+.banner-logo svg{height:30px;width:auto}
+.banner h1{font:800 32px/1.1 var(--f-display);color:var(--brand)}
+.banner-sub{font-size:17px;font-weight:700;color:var(--ink)}
+.banner-line{font-size:17px;font-weight:500;color:var(--muted)}
+.banner-cta{display:flex;align-items:center;gap:10px;align-self:flex-start;margin-top:8px;font-size:22px;font-weight:700;color:var(--brand)}
+/* book is pinned to the right edge and sized by the card's height, so it grows with the card and runs off the bottom;
+   the decoration is centred on the book and scaled from it, so it always fills the right side */
+.banner>.book-stage{position:absolute;z-index:1;top:40px;bottom:-28px;right:clamp(10px,3cqi,28px);display:flex;align-items:flex-end;justify-content:center}
+.banner-deco{position:absolute;z-index:-1;left:50%;top:42%;height:200%;width:auto;max-width:none;transform:translate(-44%,-50%);pointer-events:none}
+:root[data-app-theme="dark"] .banner-deco{opacity:.3}
+.book-img{display:block;height:100%;width:auto;max-width:36cqi;object-fit:contain;object-position:bottom}
+.book-stage>.book{flex:none;height:100%;width:auto;aspect-ratio:2/3;max-width:36cqi;border-radius:4px 4px 0 0;box-shadow:none;padding-bottom:42px}
+.price{display:flex;align-items:center;gap:4px;margin-top:6px;flex-wrap:wrap}
+.price span:first-child{height:32px;display:flex;align-items:center;padding:0 12px;border-radius:6px;background:var(--brand);color:var(--bg);font-size:15px;font-weight:500}
+.price span:last-child{height:32px;display:flex;align-items:center;padding:0 10px;border:2px dashed var(--brand);border-radius:6px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:500}
 .book{flex:0 0 132px;height:176px;border-radius:4px 10px 10px 4px;background:#D93636;box-shadow:0 14px 28px var(--shadow);display:flex;flex-direction:column;justify-content:space-between;padding:14px 12px;color:#FFFFFF}
 .book b{font:800 22px/0.95 var(--f-display)}
 .book small{font-size:10px;color:#FFE3E3}
@@ -228,6 +243,7 @@ body{background:var(--frame)}
 .quizee{position:relative;overflow:hidden;background:var(--cyan);border-radius:20px;padding:22px;display:flex;gap:12px;align-items:center;justify-content:space-between}
 .quizee ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .quizee li{display:flex;align-items:center;gap:8px;font-size:14px}
+.quizee-trophy{flex:0 1 160px;min-width:110px;width:160px;height:auto;align-self:flex-end}
 
 /* pages */
 .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
@@ -293,6 +309,10 @@ body{background:var(--frame)}
   .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
   .banner{padding:22px}
   .book{flex-basis:96px;height:132px}
+  .banner-track>.banner{padding-bottom:30px}
+  .banner h1{font-size:26px}
+  .banner-sub,.banner-line{font-size:15px}
+  .banner-cta{font-size:19px}
   .book b{font-size:17px}
   .thumb{flex-basis:104px}
 }
@@ -470,7 +490,7 @@ body{background:var(--frame)}
 .mods .tile{min-height:0}
 /* carousel dots sit inside the banner, so the banner's bottom edge matches the tiles */
 .banner-wrap .banner{min-height:216px}
-.banner-wrap .dots{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:2}
+.banner-wrap .dots{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:3}
 
 /* Video tab */
 .subj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:12px}
@@ -524,6 +544,7 @@ body{background:var(--frame)}
 .concept-card li{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink)}
 .concept-card li svg{color:var(--muted);flex:0 0 18px}
 .concept-art{flex:0 0 auto}
+.qb-deco{width:88px;height:auto;align-self:flex-end;margin:-6px 6px 0 0}
 #sec-topics,#sec-concepts,#sec-resources{scroll-margin-top:16px}
 
 /* main card becomes a column so the mini player docks at its bottom edge */
@@ -887,6 +908,7 @@ button.pf-tile:hover{border-color:var(--brand)}
 /* Test tab */
 .live-banner{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:24px 28px;border-radius:20px;background:#FDF5DA}
 :root[data-app-theme="dark"] .live-banner{background:#2E2914}
+.live-banner .lb-art{flex:0 1 190px;min-width:120px;width:190px;height:auto;align-self:flex-end;margin-bottom:-24px}
 .lb-tx{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
 .lb-tx p{margin:0;font-size:19px;color:var(--brand)}
 .lb-tx p b{font-weight:700}
